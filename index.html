@@ -137,18 +137,28 @@
 
 <script>
     const pads = {};
-    
+    let lastWidth = window.innerWidth; // Guardamos el ancho inicial
+
     function resizeCanvas() {
+        const currentWidth = window.innerWidth;
+        
+        // Solo ejecutamos el redimensionamiento si el ancho cambió 
+        // (esto ignora el scroll que solo oculta la barra de direcciones)
         ['pa', 'pc', 'aj'].forEach(id => {
             const canvas = document.getElementById('sig-' + id);
             if (canvas) {
                 const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                canvas.width = canvas.offsetWidth * ratio;
-                canvas.height = canvas.offsetHeight * ratio;
-                canvas.getContext("2d").scale(ratio, ratio);
-                if (pads[id]) pads[id].clear(); // Limpia para evitar distorsión al rotar
+                
+                // Si el ancho cambió o el canvas está vacío (primera carga)
+                if (currentWidth !== lastWidth || canvas.width === 0) {
+                    canvas.width = canvas.offsetWidth * ratio;
+                    canvas.height = canvas.offsetHeight * ratio;
+                    canvas.getContext("2d").scale(ratio, ratio);
+                    if (pads[id]) pads[id].clear(); 
+                }
             }
         });
+        lastWidth = currentWidth; // Actualizamos el ancho de referencia
     }
 
     window.onload = () => {
@@ -162,11 +172,21 @@
 
         ['pa', 'pc', 'aj'].forEach(id => {
             const canvas = document.getElementById('sig-' + id);
-            pads[id] = new SignaturePad(canvas, { backgroundColor: 'rgb(255,255,255)' });
+            pads[id] = new SignaturePad(canvas, { 
+                backgroundColor: 'rgb(255,255,255)',
+                penColor: 'rgb(0, 0, 0)' 
+            });
         });
         
-        resizeCanvas();
-        window.addEventListener("resize", resizeCanvas);
+        // Pequeño retraso para asegurar que el DOM calculó bien los anchos
+        setTimeout(resizeCanvas, 100);
+        
+        window.addEventListener("resize", () => {
+            // Solo disparamos si el ancho realmente cambió
+            if (window.innerWidth !== lastWidth) {
+                resizeCanvas();
+            }
+        });
     };
 
     function getGPS() {
